@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="robots" content="noodp" />
+        <title>Rate limiting in Golang HTTP client - Melchi</title><meta name="Description" content="This article shows "><meta property="og:title" content="Rate limiting in Golang HTTP client" />
+<meta property="og:description" content="This article shows " />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="https://melchi.me/posts/golang/" /><meta property="og:image" content="https://melchi.me/posts/golang/3gophers.png"/><meta property="article:section" content="posts" />
+<meta property="article:published_time" content="2019-12-01T21:57:40+08:00" />
+<meta property="article:modified_time" content="2020-01-01T16:45:40+08:00" />
+
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:image" content="https://melchi.me/posts/golang/3gophers.png"/>
+<meta name="twitter:title" content="Rate limiting in Golang HTTP client"/>
+<meta name="twitter:description" content="This article shows "/>
+<meta name="application-name" content="Melchi">
+<meta name="apple-mobile-web-app-title" content="Melchi"><link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png"><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"><link rel="manifest" href="/site.webmanifest"><link rel="canonical" href="https://melchi.me/posts/golang/" /><link rel="stylesheet" href="/lib/normalize/normalize.min.css"><link rel="stylesheet" href="/css/style.min.css"><link rel="stylesheet" href="/lib/fontawesome-free/all.min.css"><link rel="stylesheet" href="/lib/animate/animate.min.css"><script type="application/ld+json">
+    {
+        "@context": "http://schema.org",
+        "@type": "BlogPosting",
+        "headline": "Rate limiting in Golang HTTP client",
+        "inLanguage": "en",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "https:\/\/melchi.me\/posts\/golang\/"
+        },"image": [{
+                            "@type": "ImageObject",
+                            "url": "https:\/\/melchi.me\/posts\/golang\/3gophers.png",
+                            "width":  1015 ,
+                            "height":  629 
+                        }],"genre": "posts","keywords": "golang, API, REST","wordcount":  1175 ,
+        "url": "https:\/\/melchi.me\/posts\/golang\/","datePublished": "2019-12-01T21:57:40+08:00","dateModified": "2020-01-01T16:45:40+08:00","publisher": {
+            "@type": "Organization",
+            "name": "Melchi"},"author": {
+                "@type": "Person",
+                "name": "Melchi"
+            },"description": "This article shows "
+    }
+    </script></head>
+    <body data-header-desktop="auto" data-header-mobile="auto"><script type="text/javascript">(window.localStorage && localStorage.getItem('theme') ? localStorage.getItem('theme') === 'dark' : ('auto' === 'auto' ? window.matchMedia('(prefers-color-scheme: dark)').matches : 'auto' === 'dark')) && document.body.setAttribute('theme', 'dark');</script>
+
+        <div id="mask"></div><div class="wrapper"><header class="desktop" id="header-desktop">
+    <div class="header-wrapper">
+        <div class="header-title">
+            <a href="/" title="Melchi"><span id="id-1" class="typeit"></span></a>
+        </div>
+        <div class="menu">
+            <div class="menu-inner"><a href="javascript:void(0);" class="menu-item theme-switch" title="Switch Theme">
+                    <i class="fas fa-adjust fa-fw"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</header><header class="mobile" id="header-mobile">
+    <div class="header-container">
+        <div class="header-wrapper">
+            <div class="header-title">
+                <a href="/" title="Melchi"><span id="id-2" class="typeit"></span></a>
+            </div>
+            <div class="menu-toggle" id="menu-toggle-mobile">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+        <div class="menu" id="menu-mobile"><a href="javascript:void(0);" class="menu-item theme-switch" title="Switch Theme">
+                <i class="fas fa-adjust fa-fw"></i>
+            </a></div>
+    </div>
+</header><main class="main">
+                <div class="container"><div class="toc" id="toc-auto">
+            <h2 class="toc-title">Contents</h2>
+            <div class="toc-content" id="toc-content-auto"></div>
+        </div><article class="page single"><h1 class="single-title animated flipInX">Rate limiting in Golang HTTP client</h1><div class="post-meta">
+            <div class="post-meta-line"><span class="post-author"><a href="/" title="Author" rel=" author" class="author"><i class="fas fa-user-circle fa-fw" aria-hidden="true"></i>Melchi</a>
+</span>&nbsp;<span class="post-category">included in <a href="/categories/programming/"><i class="far fa-folder fa-fw"></i>programming</a></span></div>
+            <div class="post-meta-line"><i class="far fa-calendar-alt fa-fw"></i>&nbsp;<time datetime="2019-12-01">2019-12-01</time>&nbsp;<i class="fas fa-pencil-alt fa-fw"></i>&nbsp;1175 words&nbsp;
+                <i class="far fa-clock fa-fw"></i>&nbsp;6 minutes&nbsp;</div>
+        </div><div class="featured-image"><img
+        class="lazyload"
+        src="/svg/loading.min.svg"
+        data-src="/posts/golang/3gophers.png"
+        data-srcset="/posts/golang/3gophers.png, /posts/golang/3gophers.png 1.5x, /posts/golang/3gophers.png 2x"
+        data-sizes="auto"
+        alt="/posts/golang/3gophers.png"
+        title="This article shows " /></div><div class="details toc" id="toc-static"  data-kept="">
+                <div class="details-summary toc-title">
+                    <span>Contents</span>
+                    <span><i class="details-icon fas fa-angle-right"></i></span>
+                </div>
+                <div class="details-content toc-content" id="toc-content-static"><nav id="TableOfContents">
+  <ul>
+    <li><a href="#understanding-server-side-rate-limiting">Understanding server-side rate-limiting</a></li>
+    <li><a href="#what-not-to-do">What not to do</a></li>
+    <li><a href="#repeat-http-429-offenders-could-be-banned">Repeat HTTP 429 offenders could be banned</a></li>
+    <li><a href="#client-side-rate-limiting---the-duty-of-every-http-client-developer">Client-side rate limiting - The duty of every HTTP client developer</a></li>
+  </ul>
+</nav></div>
+            </div><div class="content" id="content"><p>I’ve been doing some interesting work with the team at MFloW writing HTTP clients that consume financial data and it’s been eye-opening to see how different API platforms choose to protect their resources. Best practices for client side rate-limiting seems to be scarce when compared to sever-side on the web. So here are my thoughts on the subject and some code samples.</p>
+<!-- raw HTML omitted -->
+<h2 id="understanding-server-side-rate-limiting">Understanding server-side rate-limiting</h2>
+<p>Most API endpoints implement resource consumption quotas in the form of rate limits. This is generally done either to protect their servers from being abused by too many requests or to monetize the endpoints for more frequent updates. For example, Yahoo Finance(RIP) enforces a rate limit of 2000/hr. Another platform IndependentReserve enforces a rate limit of 1/sec. If you pay close attention, these two limits are slightly different from each other in the way the quota is managed over the timeframe. In the case of Yahoo finance, you can consume the allocation of 2000 requests in 5 mins if you wish, which means bursty/high volume requests are allowed. In the case of IndependentReserve, you can call the Public APIs only once a second which I would assume is put in place to safeguard their servers from being abused by too many requests.</p>
+<blockquote>
+<p>A quick detour from client-side rate limiting — I came across a lot of articles talking about ways to implement rate-limiting in the server application logic. I strongly discourage this since you will have to potentially replicate the logic in many different applications and this will become a code maintenance nightmare. Also, traffic control and shaping should be the function of a perimeter device so implement an API Gateway instead and offload this function to it. I’d recommend using a gateway such as Google Apigee or Kong</p>
+</blockquote>
+<p>Some API platforms are kind enough to provide remaining request quota in the response HTTP header “Ratelimit-Remaining”. This will allow the consuming client to implement logic to play well with the resource server. From my experience, I’ve noticed these headers are treated as a courtesy and not necessarily a standard that everyone should follow. In most cases you will need a smart HTTP client so keep reading :)</p>
+<p>Here is a sample RateLimit-Remaining HTTP response:</p>
+<pre tabindex="0"><code>Request:
+
+  GET /items/123
+
+Response:
+
+  HTTP/1.1 200 Ok
+  Content-Type: application/json
+  RateLimit-Limit: 10
+  Ratelimit-Remaining: 9
+
+  {&#34;hello&#34;: &#34;world&#34;}
+</code></pre><p>When you exceed your rate limit you will generally receive an HTTP 429 Too Many Requests. At this stage you will need to wait for a bit before you fire off the next request and this is where the complexity arises. How long would you wait when an endpoint allows for bursty consumption of its resources over a large period of time?</p>
+<h2 id="what-not-to-do">What not to do</h2>
+<ol>
+<li>Break down long timeframes to manageable ones — I’ve seen programmers take rate limit quotas such as Yahoo Finance API(2000/hr) and break it down into request per minute or second. In this case, it would translate to roughly 33 requests/min. This approach will work but will not allow the client application to make use of the bursty nature of Yahoo Finance API if required.</li>
+<li>Backoff on exhaustion — I detest this approach the most. Programmers use up the allocation without keeping track of the quota and when encountered with an HTTP 429 they implement an implicit sleep that work on an incremental exponential backoff approach. This approach should be avoided like the plague since debugging issues is more difficult and the resulting code is not deterministic. The problem gets further compounded when the HTTP client object is shared by multiple subroutines.</li>
+</ol>
+<h2 id="repeat-http-429-offenders-could-be-banned">Repeat HTTP 429 offenders could be banned</h2>
+<p>Another problem with the second approach is it also assumes the API server will tolerate repeated requests upon receiving an HTTP 429. Some platforms such as Binance could temporarily or permanently ban a client when requests are still made after receiving an HTTP 429. This could happen if the incremental backoff algorithm doesn’t back off for long enough.</p>
+<h2 id="client-side-rate-limiting---the-duty-of-every-http-client-developer">Client-side rate limiting - The duty of every HTTP client developer</h2>
+<p>Now that I’ve set some context let’s jump into the code and see how it’s all done. Golang’s standard library is extremely comprehensive and the answer to our problem lies in the package “golang.org/x/time/rate”, to be more precise it’s in the “type Limiter” implemented in this package.</p>
+<blockquote>
+<p>A Limiter controls how frequently events are allowed to happen. It implements a “token bucket” of size b, initially full and refilled at rate r tokens per second. Informally, in any large enough time interval, the Limiter limits the rate to r tokens per second, with a maximum burst size of b events.
+<a href="https://en.wikipedia.org/wiki/Token_bucket" target="_blank" rel="noopener noreffer">https://en.wikipedia.org/wiki/Token_bucket</a>
+</p>
+</blockquote>
+<p>Here is a simple Go HTTP client to demonstrate rate limiting. Let’s make a few calls to BTCMarkets to get the Market Ticker data for Bitcoin (BTC-AUD)</p>
+<div class="highlight"><pre tabindex="0" class="chroma"><code class="language-golang" data-lang="golang"><span class="line"><span class="cl"><span class="kn">package</span> <span class="nx">main</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kn">import</span> <span class="p">(</span>
+</span></span><span class="line"><span class="cl">	<span class="s">&#34;context&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="s">&#34;fmt&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="s">&#34;net/http&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="s">&#34;time&#34;</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl">	<span class="s">&#34;golang.org/x/time/rate&#34;</span>
+</span></span><span class="line"><span class="cl"><span class="p">)</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">//RLHTTPClient Rate Limited HTTP Client
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">type</span> <span class="nx">RLHTTPClient</span> <span class="kd">struct</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">client</span>      <span class="o">*</span><span class="nx">http</span><span class="p">.</span><span class="nx">Client</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">Ratelimiter</span> <span class="o">*</span><span class="nx">rate</span><span class="p">.</span><span class="nx">Limiter</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">//Do dispatches the HTTP request to the network
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="p">(</span><span class="nx">c</span> <span class="o">*</span><span class="nx">RLHTTPClient</span><span class="p">)</span> <span class="nf">Do</span><span class="p">(</span><span class="nx">req</span> <span class="o">*</span><span class="nx">http</span><span class="p">.</span><span class="nx">Request</span><span class="p">)</span> <span class="p">(</span><span class="o">*</span><span class="nx">http</span><span class="p">.</span><span class="nx">Response</span><span class="p">,</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="c1">// Comment out the below 5 lines to turn off ratelimiting
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">ctx</span> <span class="o">:=</span> <span class="nx">context</span><span class="p">.</span><span class="nf">Background</span><span class="p">()</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">err</span> <span class="o">:=</span> <span class="nx">c</span><span class="p">.</span><span class="nx">Ratelimiter</span><span class="p">.</span><span class="nf">Wait</span><span class="p">(</span><span class="nx">ctx</span><span class="p">)</span> <span class="c1">// This is a blocking call. Honors the rate limit
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="kc">nil</span><span class="p">,</span> <span class="nx">err</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">resp</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">c</span><span class="p">.</span><span class="nx">client</span><span class="p">.</span><span class="nf">Do</span><span class="p">(</span><span class="nx">req</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="k">return</span> <span class="kc">nil</span><span class="p">,</span> <span class="nx">err</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">resp</span><span class="p">,</span> <span class="kc">nil</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="c1">//NewClient return http client with a ratelimiter
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span><span class="kd">func</span> <span class="nf">NewClient</span><span class="p">(</span><span class="nx">rl</span> <span class="o">*</span><span class="nx">rate</span><span class="p">.</span><span class="nx">Limiter</span><span class="p">)</span> <span class="o">*</span><span class="nx">RLHTTPClient</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">c</span> <span class="o">:=</span> <span class="o">&amp;</span><span class="nx">RLHTTPClient</span><span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">client</span><span class="p">:</span>      <span class="nx">http</span><span class="p">.</span><span class="nx">DefaultClient</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">Ratelimiter</span><span class="p">:</span> <span class="nx">rl</span><span class="p">,</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="k">return</span> <span class="nx">c</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span><span class="line"><span class="cl">
+</span></span><span class="line"><span class="cl"><span class="kd">func</span> <span class="nf">main</span><span class="p">()</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">rl</span> <span class="o">:=</span> <span class="nx">rate</span><span class="p">.</span><span class="nf">NewLimiter</span><span class="p">(</span><span class="nx">rate</span><span class="p">.</span><span class="nf">Every</span><span class="p">(</span><span class="mi">10</span><span class="o">*</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">),</span> <span class="mi">50</span><span class="p">)</span> <span class="c1">// 50 request every 10 seconds
+</span></span></span><span class="line"><span class="cl"><span class="c1"></span>	<span class="nx">c</span> <span class="o">:=</span> <span class="nf">NewClient</span><span class="p">(</span><span class="nx">rl</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">reqURL</span> <span class="o">:=</span> <span class="s">&#34;https://api.btcmarkets.net/v3/markets/BTC-AUD/ticker&#34;</span>
+</span></span><span class="line"><span class="cl">	<span class="nx">req</span><span class="p">,</span> <span class="nx">_</span> <span class="o">:=</span> <span class="nx">http</span><span class="p">.</span><span class="nf">NewRequest</span><span class="p">(</span><span class="s">&#34;GET&#34;</span><span class="p">,</span> <span class="nx">reqURL</span><span class="p">,</span> <span class="kc">nil</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">	<span class="k">for</span> <span class="nx">i</span> <span class="o">:=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="p">&lt;</span> <span class="mi">300</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">		<span class="nx">resp</span><span class="p">,</span> <span class="nx">err</span> <span class="o">:=</span> <span class="nx">c</span><span class="p">.</span><span class="nf">Do</span><span class="p">(</span><span class="nx">req</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">err</span> <span class="o">!=</span> <span class="kc">nil</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">err</span><span class="p">.</span><span class="nf">Error</span><span class="p">())</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="nx">resp</span><span class="p">.</span><span class="nx">StatusCode</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">		<span class="k">if</span> <span class="nx">resp</span><span class="p">.</span><span class="nx">StatusCode</span> <span class="o">==</span> <span class="mi">429</span> <span class="p">{</span>
+</span></span><span class="line"><span class="cl">			<span class="nx">fmt</span><span class="p">.</span><span class="nf">Printf</span><span class="p">(</span><span class="s">&#34;Rate limit reached after %d requests&#34;</span><span class="p">,</span> <span class="nx">i</span><span class="p">)</span>
+</span></span><span class="line"><span class="cl">			<span class="k">return</span>
+</span></span><span class="line"><span class="cl">		<span class="p">}</span>
+</span></span><span class="line"><span class="cl">	<span class="p">}</span>
+</span></span><span class="line"><span class="cl"><span class="p">}</span>
+</span></span></code></pre></div><p>The above code when executed should run without ever hitting the rate limit of 50 request every 10 seconds.To test it out try commenting out lines 20 to 24 and rerun the code.</p>
+<figure><img src="ticket-dispenser.jpeg"/>
+</figure>
+
+<p>In simple terms “Token Buckets” act just like a token dispenser you might have seen at the bank or any other place where you need to queue in a line with a token to be serviced. If the dispenser is empty you don’t get serviced. This is an effective method for crowd control and this approach is also used in packet-switched computer networks.</p>
+<p>Using the token bucket implementation we can make sure our code doesn’t send a request if it doesn’t have a token and the token bucket is configured to be replenished at the rate the API server will accept requests.</p>
+<figure><img src="token-bucket.png"/>
+</figure>
+
+<p>The retrieval of a token is a blocking call so it ensures that no request is dispatched to the network unless a token is made available before calling *http.Client.Do(http.request)</p>
+<p>Congratulations on making it to the end! You can now go be a good citizen of the internet who writes maintainable code that honors API rate-limits. To see a more comprehensive example take a look at <a href="https://github.com/MflowAU/btcmarkets" target="_blank" rel="noopener noreffer">https://github.com/MflowAU/btcmarkets</a>
+</p>
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+</div><div class="post-footer" id="post-footer">
+    <div class="post-info">
+        <div class="post-info-line">
+            <div class="post-info-mod">
+                <span>Updated on 2020-01-01</span>
+            </div></div>
+        <div class="post-info-line">
+            <div class="post-info-md"></div>
+            <div class="post-info-share">
+                <span><a href="javascript:void(0);" title="Share on Twitter" data-sharer="twitter" data-url="https://melchi.me/posts/golang/" data-title="Rate limiting in Golang HTTP client" data-via="@MelchiSalins" data-hashtags="golang,API,REST"><i class="fab fa-twitter fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="Share on Linkedin" data-sharer="linkedin" data-url="https://melchi.me/posts/golang/"><i class="fab fa-linkedin fa-fw" aria-hidden="true"></i></a><a href="javascript:void(0);" title="Share on Hacker News" data-sharer="hackernews" data-url="https://melchi.me/posts/golang/" data-title="Rate limiting in Golang HTTP client"><i class="fab fa-hacker-news fa-fw" aria-hidden="true"></i></a></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="post-info-more">
+        <section class="post-tags"><i class="fas fa-tags fa-fw"></i>&nbsp;<a href="/tags/golang/">golang</a>,&nbsp;<a href="/tags/api/">API</a>,&nbsp;<a href="/tags/rest/">REST</a></section>
+        <section>
+            <span><a href="javascript:void(0);" onclick="window.history.back();">Back</a></span>&nbsp;|&nbsp;<span><a href="/">Home</a></span>
+        </section>
+    </div>
+
+    <div class="post-nav"></div>
+</div>
+</article></div>
+            </main><footer class="footer">
+        <div class="footer-container"><div class="footer-line" itemscope itemtype="http://schema.org/CreativeWork"></div>
+        </div>
+    </footer></div>
+
+        <div id="fixed-buttons"><a href="#" id="back-to-top" class="fixed-button" title="Back to Top">
+                <i class="fas fa-arrow-up fa-fw"></i>
+            </a><a href="#" id="view-comments" class="fixed-button" title="View Comments">
+                <i class="fas fa-comment fa-fw"></i>
+            </a>
+        </div><link rel="stylesheet" href="/lib/lightgallery/lightgallery.min.css"><script type="text/javascript" src="https://polyfill.io/v3/polyfill.min.js?features=Array.prototype.fill%2CArray.prototype.find%2CArray.from%2CIntersectionObserver%2CMath.sign%2CObject.assign%2CPromise%2CObject.entries%2CElement.prototype.closest%2CrequestAnimationFrame%2CCustomEvent%2Chtml5shiv%2CObject.values%2Cfetch%2CElement.prototype.after"></script><script type="text/javascript" src="/lib/object-fit-images/ofi.min.js"></script><script type="text/javascript" src="/lib/smooth-scroll/smooth-scroll.min.js"></script><script type="text/javascript" src="/lib/lazysizes/lazysizes.min.js"></script><script type="text/javascript" src="/lib/lightgallery/lightgallery.min.js"></script><script type="text/javascript" src="/lib/lightgallery/lg-thumbnail.min.js"></script><script type="text/javascript" src="/lib/lightgallery/lg-zoom.min.js"></script><script type="text/javascript" src="/lib/clipboard/clipboard.min.js"></script><script type="text/javascript" src="/lib/sharer/sharer.min.js"></script><script type="text/javascript" src="/lib/typeit/typeit.min.js"></script><script type="text/javascript">window.config={"code":{"copyTitle":"Copy to clipboard","maxShownLines":10},"comment":{},"data":{"id-1":"$~/","id-2":"$~/"},"lightGallery":{"actualSize":false,"exThumbImage":"data-thumbnail","hideBarsDelay":2000,"selector":".lightgallery","speed":400,"thumbContHeight":80,"thumbWidth":80,"thumbnail":true},"typeit":{"cursorChar":"|","cursorSpeed":1000,"data":{"id-1":["id-1"],"id-2":["id-2"]},"duration":-1,"speed":500}};</script><script type="text/javascript" src="/js/theme.min.js"></script></body>
+</html>

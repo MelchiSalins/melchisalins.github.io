@@ -1,15 +1,16 @@
 <rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
     <channel>
-        <title>All Posts - ../</title>
-        <link>http://melchi.me/posts/</link>
-        <description>All Posts | ../</description>
-        <generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Fri, 06 May 2022 18:44:46 &#43;1000</lastBuildDate><atom:link href="http://melchi.me/posts/" rel="self" type="application/rss+xml" /><item>
-    <title>First Post</title>
-    <link>http://melchi.me/posts/first_post/</link>
-    <pubDate>Fri, 06 May 2022 18:44:46 &#43;1000</pubDate>
+        <title>All Posts - Melchi</title>
+        <link>https://melchi.me/posts/</link>
+        <description>All Posts | Melchi</description>
+        <generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Sun, 01 Dec 2019 21:57:40 &#43;0800</lastBuildDate><atom:link href="https://melchi.me/posts/" rel="self" type="application/rss+xml" /><item>
+    <title>Rate limiting in Golang HTTP client</title>
+    <link>https://melchi.me/posts/golang/</link>
+    <pubDate>Sun, 01 Dec 2019 21:57:40 &#43;0800</pubDate>
     <author>Melchi</author>
-    <guid>http://melchi.me/posts/first_post/</guid>
-    <description><![CDATA[<p>This article offers a sample of basic Markdown syntax that can be used in Hugo content files.</p>]]></description>
+    <guid>https://melchi.me/posts/golang/</guid>
+    <description><![CDATA[I’ve been doing some interesting work with the team at MFloW writing HTTP clients that consume financial data and it’s been eye-opening to see how different API platforms choose to protect their resources. Best practices for client side rate-limiting seems to be scarce when compared to sever-side on the web. So here are my thoughts on the subject and some code samples.
+Understanding server-side rate-limiting Most API endpoints implement resource consumption quotas in the form of rate limits.]]></description>
 </item>
 </channel>
 </rss>

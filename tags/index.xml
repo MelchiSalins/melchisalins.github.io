@@ -1,7 +1,31 @@
 <rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
     <channel>
-        <title>Tags - Tag - ../</title>
-        <link>http://melchi.me/tags/</link>
-        <description>Tags - Tag - ../</description>
-        <generator>Hugo -- gohugo.io</generator><language>en</language><atom:link href="http://melchi.me/tags/" rel="self" type="application/rss+xml" /></channel>
+        <title>Tags - Tag - Melchi</title>
+        <link>https://melchi.me/tags/</link>
+        <description>Tags - Tag - Melchi</description>
+        <generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Sun, 01 Dec 2019 21:57:40 &#43;0800</lastBuildDate><atom:link href="https://melchi.me/tags/" rel="self" type="application/rss+xml" /><item>
+    <title>API</title>
+    <link>https://melchi.me/tags/api/</link>
+    <pubDate>Sun, 01 Dec 2019 21:57:40 &#43;0800</pubDate>
+    <author>Melchi</author>
+    <guid>https://melchi.me/tags/api/</guid>
+    <description><![CDATA[]]></description>
+</item>
+<item>
+    <title>golang</title>
+    <link>https://melchi.me/tags/golang/</link>
+    <pubDate>Sun, 01 Dec 2019 21:57:40 &#43;0800</pubDate>
+    <author>Melchi</author>
+    <guid>https://melchi.me/tags/golang/</guid>
+    <description><![CDATA[]]></description>
+</item>
+<item>
+    <title>REST</title>
+    <link>https://melchi.me/tags/rest/</link>
+    <pubDate>Sun, 01 Dec 2019 21:57:40 &#43;0800</pubDate>
+    <author>Melchi</author>
+    <guid>https://melchi.me/tags/rest/</guid>
+    <description><![CDATA[]]></description>
+</item>
+</channel>
 </rss>
