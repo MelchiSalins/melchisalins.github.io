@@ -12,7 +12,16 @@
     <author>Melchi</author>
     <guid>https://melchi.me/posts/golang/</guid>
     <description><![CDATA[I’ve been doing some interesting work with the team at MFloW writing HTTP clients that consume financial data and it’s been eye-opening to see how different API platforms choose to protect their resources. Best practices for client side rate-limiting seems to be scarce when compared to sever-side on the web. So here are my thoughts on the subject and some code samples.
-Understanding server-side rate-limiting Most API endpoints implement resource consumption quotas in the form of rate limits.]]></description>
+Understanding server-side rate-limiting Most API endpoints implement resource consumption quotas in the form of rate limits .]]></description>
+</item>
+<item>
+    <title>Securing your CaaS using Google&#39;s gVisor</title>
+    <link>https://melchi.me/posts/containers/</link>
+    <pubDate>Tue, 29 May 2018 10:49:15 &#43;1000</pubDate>
+    <author>Melchi</author>
+    <guid>https://melchi.me/posts/containers/</guid>
+    <description><![CDATA[For the uninitiated Linux container technology has existed for over 10 years in the form of LXC but Docker has been responsible for popularising it with its easy interface to building and managing all aspects of a containerised application life-cycle. Similar technologies have existed in other Operating Systems in the form of FreeBSD jails, AIX Workload Partitions and Solaris Containers.
+In 2015 CoreOS introduced Rkt — A new App Container Image to rival Docker’s container specification, it was quite likely that the container movement would start to fragment and to curb this from happening Open Container Initiative (OCI) formerly Open Container Project was established.]]></description>
 </item>
 </channel>
 </rss>
