@@ -1,0 +1,15 @@
+<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+        <title>cost - Tag - Melchi</title>
+        <link>https://melchi.me/tags/cost/</link>
+        <description>cost - Tag - Melchi</description>
+        <generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Mon, 27 Jul 2020 11:14:32 &#43;1000</lastBuildDate><atom:link href="https://melchi.me/tags/cost/" rel="self" type="application/rss+xml" /><item>
+    <title>Cloud cost management</title>
+    <link>https://melchi.me/posts/cloud/</link>
+    <pubDate>Mon, 27 Jul 2020 11:14:32 &#43;1000</pubDate>
+    <author>Melchi</author>
+    <guid>https://melchi.me/posts/cloud/</guid>
+    <description><![CDATA[About five years ago, Public Cloud services were not well understood. Large enterprises debated if migration to the cloud would meet their security requirements, paralyzed with the fear of the unknown. I have since come a long way — Digital Transformation is now synonymous with migration to the cloud. The benefits of on-demand infrastructure and elasticity have made engineers more productive and businesses happier with the promise of improved time-to-market.]]></description>
+</item>
+</channel>
+</rss>
