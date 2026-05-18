@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <rect width="1200" height="720" fill="#ffffff"/>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2d96bd"/>
+    </marker>
+    <marker id="arrowPink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#ef3982"/>
+    </marker>
+    <linearGradient id="bucketFill" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#6bd6fd" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#2d96bd" stop-opacity="0.85"/>
+    </linearGradient>
+  </defs>
+
+  <text x="600" y="58" text-anchor="middle" font-size="32" font-weight="700" fill="#161209">Token Bucket Rate Limiter</text>
+  <text x="600" y="90" text-anchor="middle" font-size="16" fill="#6b6b6b">Refilled at r tokens/sec &#8212; capacity b tokens</text>
+
+  <!-- refill drops -->
+  <text x="600" y="138" text-anchor="middle" font-size="16" font-weight="600" fill="#ef3982">+ r tokens / sec</text>
+  <g stroke="#ef3982" stroke-width="3" fill="none" stroke-linecap="round">
+    <line x1="540" y1="155" x2="540" y2="205" marker-end="url(#arrowPink)"/>
+    <line x1="600" y1="155" x2="600" y2="205" marker-end="url(#arrowPink)"/>
+    <line x1="660" y1="155" x2="660" y2="205" marker-end="url(#arrowPink)"/>
+  </g>
+
+  <!-- bucket -->
+  <path d="M 470 220 L 730 220 L 690 460 L 510 460 Z" fill="#ffffff" stroke="#161209" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M 482 265 L 718 265 L 690 460 L 510 460 Z" fill="url(#bucketFill)"/>
+
+  <!-- token discs -->
+  <g fill="#ffffff" stroke="#2d96bd" stroke-width="2">
+    <circle cx="540" cy="305" r="14"/>
+    <circle cx="585" cy="300" r="14"/>
+    <circle cx="630" cy="307" r="14"/>
+    <circle cx="675" cy="303" r="14"/>
+    <circle cx="555" cy="350" r="14"/>
+    <circle cx="600" cy="355" r="14"/>
+    <circle cx="645" cy="350" r="14"/>
+    <circle cx="568" cy="395" r="14"/>
+    <circle cx="615" cy="400" r="14"/>
+    <circle cx="660" cy="395" r="14"/>
+  </g>
+
+  <!-- capacity bracket -->
+  <g stroke="#161209" stroke-width="2" fill="none">
+    <path d="M 740 230 Q 758 230 758 250 L 758 335 Q 758 345 770 345 Q 758 345 758 355 L 758 440 Q 758 460 745 460"/>
+  </g>
+  <text x="780" y="345" font-size="18" fill="#161209">
+    <tspan x="780" dy="0">capacity</tspan>
+    <tspan x="780" dy="22">b tokens</tspan>
+  </text>
+
+  <!-- bottom flow boxes -->
+  <g>
+    <rect x="60" y="540" width="220" height="100" rx="14" fill="#ffffff" stroke="#2d96bd" stroke-width="3"/>
+    <text x="170" y="580" text-anchor="middle" font-size="20" font-weight="600" fill="#161209">HTTP request</text>
+    <text x="170" y="608" text-anchor="middle" font-size="14" fill="#6b6b6b">client.Do(req)</text>
+  </g>
+  <line x1="280" y1="590" x2="350" y2="590" stroke="#2d96bd" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <g>
+    <rect x="350" y="540" width="240" height="100" rx="14" fill="#ffffff" stroke="#ef3982" stroke-width="3"/>
+    <text x="470" y="578" text-anchor="middle" font-size="20" font-weight="600" fill="#161209">Wait for token</text>
+    <text x="470" y="606" text-anchor="middle" font-size="14" fill="#6b6b6b">limiter.Wait(ctx)</text>
+    <text x="470" y="625" text-anchor="middle" font-size="12" fill="#ef3982" font-style="italic">blocks if empty</text>
+  </g>
+
+  <line x1="600" y1="465" x2="600" y2="535" stroke="#2d96bd" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="612" y="503" font-size="14" fill="#2d96bd" font-style="italic">take 1 token</text>
+
+  <line x1="590" y1="590" x2="660" y2="590" stroke="#2d96bd" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <g>
+    <rect x="660" y="540" width="240" height="100" rx="14" fill="#2d96bd" stroke="#2d96bd" stroke-width="3"/>
+    <text x="780" y="580" text-anchor="middle" font-size="20" font-weight="600" fill="#ffffff">Send to network</text>
+    <text x="780" y="608" text-anchor="middle" font-size="14" fill="#e6f4fb">request dispatched</text>
+  </g>
+  <line x1="900" y1="590" x2="980" y2="590" stroke="#2d96bd" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <g>
+    <rect x="980" y="540" width="160" height="100" rx="14" fill="#ffffff" stroke="#161209" stroke-width="3"/>
+    <text x="1060" y="582" text-anchor="middle" font-size="20" font-weight="600" fill="#161209">API server</text>
+    <text x="1060" y="608" text-anchor="middle" font-size="14" fill="#6b6b6b">within limit</text>
+  </g>
+
+  <text x="600" y="690" text-anchor="middle" font-size="13" fill="#9c9c9c" font-style="italic">golang.org/x/time/rate &#183; Limiter.Wait blocks until a token is available, honoring ctx cancellation</text>
+</svg>

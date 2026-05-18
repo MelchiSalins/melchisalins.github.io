@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 720" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <rect width="1200" height="720" fill="#ffffff"/>
+  <defs>
+    <linearGradient id="signGrad" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f5f9fb"/>
+    </linearGradient>
+    <linearGradient id="dispenserGrad" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0%" stop-color="#ef3982"/>
+      <stop offset="100%" stop-color="#c41867"/>
+    </linearGradient>
+    <linearGradient id="ticketGrad" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#eef6fa"/>
+    </linearGradient>
+    <filter id="softShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="6"/>
+      <feOffset dx="0" dy="6" result="offsetblur"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.18"/></feComponentTransfer>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Title -->
+  <text x="600" y="64" text-anchor="middle" font-size="30" font-weight="700" fill="#161209">A Token Bucket, In Real Life</text>
+  <text x="600" y="96" text-anchor="middle" font-size="16" fill="#6b6b6b">No token, no service. Wait your turn.</text>
+
+  <!-- Sign post (vertical bar) -->
+  <rect x="585" y="430" width="30" height="200" fill="#161209"/>
+  <rect x="540" y="625" width="120" height="20" fill="#161209" rx="4"/>
+
+  <!-- Sign board -->
+  <g filter="url(#softShadow)">
+    <rect x="380" y="130" width="440" height="320" rx="22" fill="url(#signGrad)" stroke="#161209" stroke-width="6"/>
+    <!-- Inner border -->
+    <rect x="402" y="152" width="396" height="276" rx="14" fill="none" stroke="#2d96bd" stroke-width="3"/>
+    <!-- "PLEASE" -->
+    <text x="600" y="210" text-anchor="middle" font-size="34" font-weight="800" fill="#ef3982" letter-spacing="4">PLEASE</text>
+    <!-- Down arrow -->
+    <g fill="#ef3982">
+      <path d="M 480 235 H 720 V 320 H 770 L 600 430 L 430 320 H 480 Z" stroke="#161209" stroke-width="4" stroke-linejoin="round"/>
+    </g>
+    <text x="600" y="290" text-anchor="middle" font-size="30" font-weight="800" fill="#ffffff" letter-spacing="2">TAKE A</text>
+    <text x="600" y="340" text-anchor="middle" font-size="30" font-weight="800" fill="#ffffff" letter-spacing="2">NUMBER</text>
+  </g>
+
+  <!-- Dispenser body -->
+  <g filter="url(#softShadow)">
+    <ellipse cx="600" cy="500" rx="135" ry="105" fill="url(#dispenserGrad)" stroke="#161209" stroke-width="5"/>
+    <!-- Slot -->
+    <rect x="470" y="540" width="80" height="30" rx="6" fill="#161209"/>
+    <!-- Side ridges (token holder grooves) -->
+    <g stroke="#a01754" stroke-width="2" opacity="0.6">
+      <line x1="690" y1="455" x2="715" y2="455"/>
+      <line x1="690" y1="475" x2="720" y2="475"/>
+      <line x1="690" y1="495" x2="720" y2="495"/>
+      <line x1="690" y1="515" x2="720" y2="515"/>
+      <line x1="690" y1="535" x2="715" y2="535"/>
+    </g>
+  </g>
+
+  <!-- Ticket coming out -->
+  <g filter="url(#softShadow)">
+    <rect x="370" y="540" width="120" height="36" rx="3" fill="url(#ticketGrad)" stroke="#161209" stroke-width="3"/>
+    <!-- perforation -->
+    <line x1="430" y1="540" x2="430" y2="576" stroke="#161209" stroke-width="2" stroke-dasharray="3,3"/>
+    <text x="405" y="565" text-anchor="middle" font-size="18" font-weight="700" fill="#161209">J99</text>
+    <text x="460" y="563" text-anchor="middle" font-size="14" fill="#2d96bd">token</text>
+  </g>
+
+  <!-- Annotation: refill rate -->
+  <g>
+    <text x="180" y="200" font-size="16" font-weight="700" fill="#ef3982">refill: r tokens/sec</text>
+    <line x1="180" y1="215" x2="280" y2="280" stroke="#ef3982" stroke-width="2" stroke-dasharray="4,4"/>
+  </g>
+
+  <!-- Annotation: capacity -->
+  <g>
+    <text x="900" y="200" font-size="16" font-weight="700" fill="#161209">capacity: b tokens</text>
+    <line x1="950" y1="215" x2="870" y2="280" stroke="#161209" stroke-width="2" stroke-dasharray="4,4"/>
+  </g>
+
+  <!-- Annotation: take a number = limiter.Wait(ctx) -->
+  <g>
+    <text x="220" y="540" font-size="16" font-weight="700" fill="#2d96bd">limiter.Wait(ctx)</text>
+    <text x="220" y="562" font-size="13" fill="#6b6b6b">blocks until a ticket</text>
+    <text x="220" y="580" font-size="13" fill="#6b6b6b">is available</text>
+    <line x1="345" y1="555" x2="375" y2="558" stroke="#2d96bd" stroke-width="2" marker-end="url(#dot)"/>
+  </g>
+
+  <text x="600" y="688" text-anchor="middle" font-size="13" fill="#9c9c9c" font-style="italic">Same idea in code: clients can&#8217;t make a request until they hold a token.</text>
+</svg>
