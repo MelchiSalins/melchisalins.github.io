@@ -1,16 +1,3 @@
-<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
-    <channel>
-        <title>docker - Tag - Melchi</title>
-        <link>https://melchi.me/tags/docker/</link>
-        <description>docker - Tag - Melchi</description>
-        <generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Tue, 29 May 2018 10:49:15 &#43;1000</lastBuildDate><atom:link href="https://melchi.me/tags/docker/" rel="self" type="application/rss+xml" /><item>
-    <title>Securing your CaaS using Google&#39;s gVisor</title>
-    <link>https://melchi.me/posts/containers/</link>
-    <pubDate>Tue, 29 May 2018 10:49:15 &#43;1000</pubDate>
-    <author>Melchi</author>
-    <guid>https://melchi.me/posts/containers/</guid>
-    <description><![CDATA[For the uninitiated Linux container technology has existed for over 10 years in the form of LXC but Docker has been responsible for popularising it with its easy interface to building and managing all aspects of a containerised application life-cycle. Similar technologies have existed in other Operating Systems in the form of FreeBSD jails, AIX Workload Partitions and Solaris Containers.
-In 2015 CoreOS introduced Rkt — A new App Container Image to rival Docker’s container specification, it was quite likely that the container movement would start to fragment and to curb this from happening Open Container Initiative (OCI) formerly Open Container Project was established.]]></description>
-</item>
-</channel>
-</rss>
+<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Docker - Tag - Melchi</title><link>https://melchi.me/tags/docker/</link><description>Docker - Tag - Melchi</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Tue, 29 May 2018 10:49:15 +1000</lastBuildDate><atom:link href="https://melchi.me/tags/docker/" rel="self" type="application/rss+xml"/><item><title>Securing your CaaS using Google's gVisor</title><link>https://melchi.me/posts/containers/</link><pubDate>Tue, 29 May 2018 10:49:15 +1000</pubDate><author>Melchi</author><guid>https://melchi.me/posts/containers/</guid><description><![CDATA[<h2 id="for-the-uninitiated">For the uninitiated</h2>
+<p>Linux container technology has existed for over 10 years in the form of <a href="https://linuxcontainers.org/" target="_blank" rel="noopener noreffer ">LXC</a> but Docker has been responsible for popularising it with its easy interface to building and managing all aspects of a containerised application life-cycle. Similar technologies have existed in other Operating Systems in the form of FreeBSD jails, AIX Workload Partitions and Solaris Containers.</p>
+<p>In 2015 CoreOS introduced Rkt — A new App Container Image to rival Docker’s container specification, it was quite likely that the container movement would start to fragment and to curb this from happening Open Container Initiative (OCI) formerly Open Container Project was established. OCI is now run by the Linux Foundation and aims to standardise container formats &amp; runtimes. In this article, I’ll be talking about docker and securing AWS ECS Cluster but the same should be applicable to any container system that relies on <a href="https://containerd.io/" target="_blank" rel="noopener noreffer ">containerd</a>.</p>]]></description></item></channel></rss>

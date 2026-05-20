@@ -1,16 +1,3 @@
-<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
-    <channel>
-        <title>REST - Tag - Melchi</title>
-        <link>https://melchi.me/tags/rest/</link>
-        <description>REST - Tag - Melchi</description>
-        <generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Sun, 01 Dec 2019 21:57:40 &#43;0800</lastBuildDate><atom:link href="https://melchi.me/tags/rest/" rel="self" type="application/rss+xml" /><item>
-    <title>Rate limiting in Golang HTTP client</title>
-    <link>https://melchi.me/posts/golang/</link>
-    <pubDate>Sun, 01 Dec 2019 21:57:40 &#43;0800</pubDate>
-    <author>Melchi</author>
-    <guid>https://melchi.me/posts/golang/</guid>
-    <description><![CDATA[I’ve been doing some interesting work with the team at MFloW writing HTTP clients that consume financial data and it’s been eye-opening to see how different API platforms choose to protect their resources. Best practices for client side rate-limiting seems to be scarce when compared to sever-side on the web. So here are my thoughts on the subject and some code samples.
-Understanding server-side rate-limiting Most API endpoints implement resource consumption quotas in the form of rate limits .]]></description>
-</item>
-</channel>
-</rss>
+<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>REST - Tag - Melchi</title><link>https://melchi.me/tags/rest/</link><description>REST - Tag - Melchi</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Sun, 01 Dec 2019 21:57:40 +0800</lastBuildDate><atom:link href="https://melchi.me/tags/rest/" rel="self" type="application/rss+xml"/><item><title>Rate limiting in Golang HTTP client</title><link>https://melchi.me/posts/golang/</link><pubDate>Sun, 01 Dec 2019 21:57:40 +0800</pubDate><author>Melchi</author><guid>https://melchi.me/posts/golang/</guid><description><![CDATA[<p>I&rsquo;ve been doing some interesting work with the team at MFlow writing HTTP clients that consume financial data, and it&rsquo;s been eye-opening to see how different API platforms choose to protect their resources. Best practices for <em>client-side</em> rate limiting seem to be scarce when compared to server-side, so here are my thoughts on the subject and some code samples.</p>
+<blockquote>
+<p><strong>TL;DR</strong> — wrap <code>*http.Client</code> and call <code>limiter.Wait(ctx)</code> before every request, where <code>limiter</code> is a <code>*rate.Limiter</code> from <a href="https://pkg.go.dev/golang.org/x/time/rate" target="_blank" rel="noopener noreffer "><code>golang.org/x/time/rate</code></a>. The token bucket honours bursts, blocks cleanly when you&rsquo;re out of tokens, and respects context cancellation.</p>]]></description></item></channel></rss>
