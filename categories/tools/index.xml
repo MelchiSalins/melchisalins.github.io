@@ -1,0 +1,9 @@
+<rss xmlns:atom="http://www.w3.org/2005/Atom" version="2.0"><channel><title>Tools - Category - Melchi</title><link>https://melchi.me/categories/tools/</link><description>Tools - Category - Melchi</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Wed, 01 Jan 2025 00:00:00 +1000</lastBuildDate><atom:link href="https://melchi.me/categories/tools/" rel="self" type="application/rss+xml"/><item><title>LLM VRAM Estimator</title><link>https://melchi.me/tools/vram-estimator/</link><pubDate>Wed, 01 Jan 2025 00:00:00 +1000</pubDate><author>Melchi</author><guid>https://melchi.me/tools/vram-estimator/</guid><description><![CDATA[<p>Enter a Hugging Face model ID to estimate its GPU VRAM requirements. The estimator fetches the model config directly from HuggingFace and computes weight memory, KV cache, activations, and training overhead — entirely in your browser, no data is sent anywhere.</p>
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
+<!-- raw HTML omitted -->]]></description></item></channel></rss>
