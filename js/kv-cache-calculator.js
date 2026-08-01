@@ -244,24 +244,45 @@
     ];
 
     // ============================================================
-    // GPU presets (BF16 host VRAM, GiB, current and recent generations)
+    // GPU memory presets (nominal per-GPU capacity, treated as GiB)
+    // Audited against vendor specifications on 2026-08-01. Preview values
+    // are official projections and may change before general availability.
     // ============================================================
     const GPUS = [
-        { id: "h100-80",     label: "NVIDIA H100 80GB (SXM/PCIe)",    gib: 80  },
-        { id: "h100-94",     label: "NVIDIA H100 NVL 94GB",           gib: 94  },
-        { id: "h200-141",    label: "NVIDIA H200 141GB",              gib: 141 },
-        { id: "b200-192",    label: "NVIDIA B200 192GB",              gib: 192 },
-        { id: "gb200-192",   label: "NVIDIA GB200 (per Blackwell die) 192GB", gib: 192 },
-        { id: "a100-80",     label: "NVIDIA A100 80GB",               gib: 80  },
-        { id: "a100-40",     label: "NVIDIA A100 40GB",               gib: 40  },
-        { id: "l40s-48",     label: "NVIDIA L40S 48GB",               gib: 48  },
-        { id: "rtx-pro-6000",label: "NVIDIA RTX PRO 6000 Blackwell 96GB", gib: 96 },
-        { id: "rtx-a6000",   label: "NVIDIA RTX A6000 48GB",          gib: 48  },
-        { id: "rtx-5090",    label: "NVIDIA RTX 5090 32GB",           gib: 32  },
-        { id: "rtx-4090",    label: "NVIDIA RTX 4090 24GB",           gib: 24  },
-        { id: "mi300x-192",  label: "AMD Instinct MI300X 192GB",      gib: 192 },
-        { id: "mi325x-256",  label: "AMD Instinct MI325X 256GB",      gib: 256 },
-        { id: "mi355x-288",  label: "AMD Instinct MI355X 288GB",      gib: 288 }
+        { id: "h100-80",     group: "NVIDIA Data Center", label: "NVIDIA H100 80GB (SXM/PCIe)",                    gib: 80  },
+        { id: "h100-94",     group: "NVIDIA Data Center", label: "NVIDIA H100 NVL 94GB",                           gib: 94  },
+        { id: "h200-141",    group: "NVIDIA Data Center", label: "NVIDIA H200 141GB",                              gib: 141 },
+        { id: "b200-180",    group: "NVIDIA Data Center", label: "NVIDIA B200 180GB (HGX)",                        gib: 180 },
+        { id: "gb200-186",   group: "NVIDIA Data Center", label: "NVIDIA GB200 186GB (per Blackwell GPU)",         gib: 186 },
+        { id: "b300-270",    group: "NVIDIA Data Center", label: "NVIDIA B300 270GB (HGX)",                        gib: 270 },
+        { id: "gb300-279",   group: "NVIDIA Data Center", label: "NVIDIA GB300 279GB (per Blackwell Ultra GPU)",   gib: 279 },
+        { id: "rubin-288",   group: "NVIDIA Data Center", label: "NVIDIA Rubin 288GB (preliminary specification)", gib: 288 },
+        { id: "a100-80",     group: "NVIDIA Data Center", label: "NVIDIA A100 80GB",                               gib: 80  },
+        { id: "a100-40",     group: "NVIDIA Data Center", label: "NVIDIA A100 40GB",                               gib: 40  },
+        { id: "l40s-48",     group: "NVIDIA Data Center", label: "NVIDIA L40S 48GB",                               gib: 48  },
+
+        { id: "rtx-pro-6000",    group: "NVIDIA Professional / Consumer", label: "NVIDIA RTX PRO 6000 Blackwell 96GB", gib: 96 },
+        { id: "rtx-pro-5000-72", group: "NVIDIA Professional / Consumer", label: "NVIDIA RTX PRO 5000 Blackwell 72GB", gib: 72 },
+        { id: "rtx-pro-5000-48", group: "NVIDIA Professional / Consumer", label: "NVIDIA RTX PRO 5000 Blackwell 48GB", gib: 48 },
+        { id: "rtx-pro-4500-32", group: "NVIDIA Professional / Consumer", label: "NVIDIA RTX PRO 4500 Blackwell 32GB", gib: 32 },
+        { id: "rtx-pro-4000-24", group: "NVIDIA Professional / Consumer", label: "NVIDIA RTX PRO 4000 Blackwell 24GB", gib: 24 },
+        { id: "rtx-a6000",       group: "NVIDIA Professional / Consumer", label: "NVIDIA RTX A6000 48GB",              gib: 48 },
+        { id: "rtx-5090",        group: "NVIDIA Professional / Consumer", label: "NVIDIA RTX 5090 32GB",               gib: 32 },
+        { id: "rtx-4090",        group: "NVIDIA Professional / Consumer", label: "NVIDIA RTX 4090 24GB",               gib: 24 },
+
+        { id: "mi300x-192", group: "AMD Instinct", label: "AMD Instinct MI300X 192GB", gib: 192 },
+        { id: "mi325x-256", group: "AMD Instinct", label: "AMD Instinct MI325X 256GB", gib: 256 },
+        { id: "mi350x-288", group: "AMD Instinct", label: "AMD Instinct MI350X 288GB", gib: 288 },
+        { id: "mi355x-288", group: "AMD Instinct", label: "AMD Instinct MI355X 288GB", gib: 288 },
+
+        { id: "radeon-ai-pro-r9700-32", group: "AMD Professional", label: "AMD Radeon AI PRO R9700 32GB", gib: 32 },
+
+        { id: "arc-pro-b70-32", group: "Intel Professional", label: "Intel Arc Pro B70 32GB", gib: 32 },
+        { id: "arc-pro-b65-32", group: "Intel Professional", label: "Intel Arc Pro B65 32GB", gib: 32 },
+        { id: "arc-pro-b60-24", group: "Intel Professional", label: "Intel Arc Pro B60 24GB", gib: 24 },
+
+        { id: "mi455x-432", group: "Preview (announced)", label: "AMD Instinct MI455X 432GB (Preview, expected 2H 2026)", gib: 432 },
+        { id: "mi430x-432", group: "Preview (announced)", label: "AMD Instinct MI430X 432GB (Preview, expected 2027)",    gib: 432 }
     ];
 
     // ============================================================
@@ -330,6 +351,27 @@
 
     function buildSelect(sel, items, mapper) {
         sel.innerHTML = items.map(mapper).join("");
+    }
+
+    function buildGroupedSelect(sel, items) {
+        const groups = new Map();
+        for (const item of items) {
+            if (!groups.has(item.group)) groups.set(item.group, []);
+            groups.get(item.group).push(item);
+        }
+
+        sel.replaceChildren();
+        for (const [label, groupItems] of groups) {
+            const group = document.createElement("optgroup");
+            group.label = label;
+            for (const item of groupItems) {
+                const option = document.createElement("option");
+                option.value = item.id;
+                option.textContent = item.label;
+                group.appendChild(option);
+            }
+            sel.appendChild(group);
+        }
     }
 
     // ============================================================
@@ -1059,10 +1101,7 @@
             $("kvcc-model"), MODELS,
             (m) => `<option value="${m.id}">${m.label}</option>`
         );
-        buildSelect(
-            $("kvcc-gpu"), GPUS,
-            (g) => `<option value="${g.id}">${g.label}</option>`
-        );
+        buildGroupedSelect($("kvcc-gpu"), GPUS);
 
         // Quick-pick chips
         const quick = $("kvcc-hf-quick");
