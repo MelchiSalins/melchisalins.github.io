@@ -22,7 +22,10 @@
  *     summary when at least one override is present.
  *
  * Sizing math:
- *   weights  = params * bytes_per_param
+ *   weights  = (params - quant_params) * bytes_per_param
+ *              + quant_params * quant_bytes_per_param
+ *              (quant_params = share stored quantized, e.g. MXFP4 MoE
+ *               experts; 0 means uniform precision = params * bytes_per_param)
  *   kv/token = depends on attention type
  *     MHA/GQA/MQA: 2 * layers * kv_heads * head_dim * bytes_per_kv
  *     MLA        : layers * (kv_lora_rank + qk_rope_head_dim) * bytes_per_kv
@@ -186,6 +189,30 @@
             note: "Google Gemma 3 27B IT. 5:1 local/global pattern."
         },
 
+        // --- OpenAI gpt-oss (MXFP4 MoE experts, bf16 elsewhere) ---
+        {
+            id: "gpt-oss-120b",
+            label: "gpt-oss 120B (SWA 1:1, MXFP4 MoE)",
+            attn: "swa",
+            params: 116.83, layers: 36, qHeads: 64, kvHeads: 8, headDim: 64,
+            swaWindow: 128, swaLocal: 1, swaGlobal: 1,
+            qParams: 114.66, qFormat: "mxfp4",
+            note: "OpenAI gpt-oss-120b: 128-expert MoE, ~5.1B active. Experts " +
+                  "ship MXFP4-quantized (~60.8 GiB total); attention/embeddings bf16. " +
+                  "Alternating 128-token sliding / full attention."
+        },
+        {
+            id: "gpt-oss-20b",
+            label: "gpt-oss 20B (SWA 1:1, MXFP4 MoE)",
+            attn: "swa",
+            params: 20.91, layers: 24, qHeads: 64, kvHeads: 8, headDim: 64,
+            swaWindow: 128, swaLocal: 1, swaGlobal: 1,
+            qParams: 19.11, qFormat: "mxfp4",
+            note: "OpenAI gpt-oss-20b: 32-expert MoE, ~3.6B active. MXFP4 experts " +
+                  "(~12.8 GiB total), bf16 elsewhere. Alternating 128-token " +
+                  "sliding / full attention."
+        },
+
         // --- Falcon 40B ---
         {
             id: "falcon-40b",
@@ -247,7 +274,9 @@
         "deepseek-ai/DeepSeek-V3",
         "unsloth/Llama-3.3-70B-Instruct",
         "unsloth/Llama-4-Scout-17B-16E-Instruct",
-        "unsloth/gemma-3-27b-it"
+        "unsloth/gemma-3-27b-it",
+        "openai/gpt-oss-120b",
+        "unsloth/kimi-k3"
     ];
 
     // ============================================================
@@ -261,8 +290,21 @@
         "kvcc-mla-lora", "kvcc-mla-rope",
         "kvcc-swa-window", "kvcc-swa-local", "kvcc-swa-global",
         "kvcc-hybrid-attn",
-        "kvcc-wprec"
+        "kvcc-wprec", "kvcc-qparams", "kvcc-qformat"
     ];
+
+    // Bytes-per-param for each quantized-format option (kvcc-qformat values).
+    // MXFP4/MXFP8 include the E8M0 scale byte per 32-element group; NVFP4 the
+    // FP8 scale per 16-element group.
+    const QFORMAT = {
+        mxfp4: 0.53125,   // 0.5 + 1/32
+        nvfp4: 0.5625,    // 0.5 + 1/16
+        int4:  0.5,
+        fp8:   1,
+        int8:  1,
+        mxfp8: 1.03125,   // 1 + 1/32
+        bf16:  2
+    };
 
     // ============================================================
     // Helpers
@@ -403,7 +445,11 @@
             "kvcc-layers":  m.layers,
             "kvcc-qheads":  m.qHeads,
             "kvcc-kvheads": m.kvHeads,
-            "kvcc-headdim": m.headDim
+            "kvcc-headdim": m.headDim,
+            // Always stamp the quantized split so switching away from a
+            // quantized model (preset or HF) can't leave stale values.
+            "kvcc-qparams": m.qParams || 0,
+            "kvcc-qformat": QFORMAT[m.qFormat] || QFORMAT.mxfp4
         };
         if (m.attn === "mla") {
             b["kvcc-mla-lora"] = m.mlaLora || 512;
@@ -498,6 +544,150 @@
     }
 
     /**
+     * Classify a repo's `quantization_config` into a family we can model.
+     * Returns null when absent, else:
+     *   { family, label, qFormat, groupSize, modeled, notes[] }
+     * `modeled: false` means we recognised a quant method but can't derive
+     * the byte layout reliably (GPTQ/AWQ/bnb pack shapes vary) — the user
+     * must set the quantized split manually.
+     */
+    function detectQuantization(raw, cfg) {
+        const qc = raw.quantization_config ||
+                   (raw.text_config && raw.text_config.quantization_config) ||
+                   cfg.quantization_config;
+        if (!qc || typeof qc !== "object") return null;
+
+        const method = String(qc.quant_method || "").toLowerCase();
+        const notes = [];
+
+        if (method === "mxfp4") {
+            // gpt-oss style: MoE experts in MXFP4, rest bf16.
+            return { family: "mxfp4", label: "mxfp4", qFormat: "mxfp4",
+                     groupSize: 32, modeled: true, notes };
+        }
+
+        if (method === "fp8") {
+            // DeepSeek style: FP8 weights + separate higher-precision scales.
+            return { family: "fp8",
+                     label: "fp8" + (qc.fmt ? " (" + qc.fmt + ")" : ""),
+                     qFormat: "fp8", groupSize: 0, modeled: true, notes };
+        }
+
+        if (method === "compressed-tensors") {
+            // Decide by the weight spec (type/num_bits/group_size), not the
+            // format string — format vocabularies vary across repos.
+            const groups = qc.config_groups && typeof qc.config_groups === "object"
+                ? Object.values(qc.config_groups)
+                : [];
+            const specs = groups
+                .map((g) => g && g.weights)
+                .filter((w) => w && typeof w === "object");
+            const label = "compressed-tensors" +
+                (qc.format ? " (" + qc.format + ")" : "");
+            if (!specs.length) {
+                notes.push("compressed-tensors config without a weight spec; " +
+                           "set the quantized split manually.");
+                return { family: "compressed-tensors", label,
+                         qFormat: null, groupSize: 0, modeled: false, notes };
+            }
+            if (specs.length > 1 &&
+                specs.some((w) => w.num_bits !== specs[0].num_bits)) {
+                notes.push("Multiple quantization groups with different bit " +
+                           "widths; using the first group — verify manually.");
+            }
+            const w = specs[0];
+            const bits = w.num_bits;
+            const type = String(w.type || "").toLowerCase();
+            const gs   = typeof w.group_size === "number" ? w.group_size : 0;
+            if (type === "float" && bits === 4) {
+                return gs === 16
+                    ? { family: "nvfp4", label, qFormat: "nvfp4",
+                        groupSize: 16, modeled: true, notes }
+                    : { family: "mxfp4", label, qFormat: "mxfp4",
+                        groupSize: gs || 32, modeled: true, notes };
+            }
+            if (type === "float" && bits === 8) {
+                // Group-scaled FP8 = MXFP8 (scales ride along); otherwise
+                // plain FP8 with separate scale tensors.
+                return gs > 0
+                    ? { family: "mxfp8", label, qFormat: "mxfp8",
+                        groupSize: gs, modeled: true, notes }
+                    : { family: "fp8", label, qFormat: "fp8",
+                        groupSize: 0, modeled: true, notes };
+            }
+            if (type === "int" && bits === 8) {
+                return { family: "int8", label, qFormat: "int8",
+                         groupSize: gs, modeled: true, notes };
+            }
+            if (type === "int" && bits === 4) {
+                return { family: "int4", label, qFormat: "int4",
+                         groupSize: gs, modeled: true, notes };
+            }
+            notes.push("Unrecognised compressed-tensors weight spec (" +
+                       type + "/" + bits + "-bit); set the split manually.");
+            return { family: "compressed-tensors", label,
+                     qFormat: null, groupSize: 0, modeled: false, notes };
+        }
+
+        // gptq / awq / bitsandbytes / torchao / hqq / ... — pack layouts
+        // vary too much to derive bytes from the dtype map reliably.
+        notes.push("Quantization method \"" + (method || "unknown") +
+                   "\" detected but not modeled; set 'Quantized params' " +
+                   "and format manually.");
+        return { family: method || "unknown", label: method || "unknown",
+                 qFormat: null, groupSize: 0, modeled: false, notes };
+    }
+
+    /**
+     * Split the HF API per-dtype parameter counts into logical quantized vs
+     * non-quantized params for a modeled quant family.
+     *
+     * HF convention (verified against gpt-oss-120b / kimi-k3, where the
+     * derived bytes match the repos' safetensors index total_size exactly):
+     * each packed-U8 "blocks" byte is counted as 2 params and each E8M0
+     * scale byte as 1 param, so logical FP4 params = U8 × gs/(gs+1).
+     */
+    function splitQuantParams(quant, dtypeMap) {
+        const gs = quant.groupSize || 32;
+        let q = 0, nq = 0;
+        for (const [k, v] of Object.entries(dtypeMap)) {
+            if (typeof v !== "number" || !isFinite(v) || v <= 0) continue;
+            const isF8 = k === "F8_E4M3" || k === "F8_E5M2";
+            switch (quant.family) {
+                case "mxfp4":
+                    if (k === "U8") q += v * gs / (gs + 1);
+                    else nq += v;
+                    break;
+                case "nvfp4":
+                    // Packed FP4 pairs in U8; FP8 group scales live in the F8
+                    // bucket and are already folded into qBytes — skip them.
+                    if (k === "U8") q += v * 2;
+                    else if (!isF8) nq += v;
+                    break;
+                case "fp8":
+                    if (isF8) q += v;
+                    else nq += v;
+                    break;
+                case "mxfp8":
+                    if (isF8 || k === "U8") q += v;
+                    else nq += v;
+                    break;
+                case "int8":
+                    if (k === "I8" || k === "U8") q += v;
+                    else nq += v;
+                    break;
+                case "int4":
+                    if (k === "U8") q += v * 2;
+                    else nq += v;
+                    break;
+                default:
+                    nq += v;
+            }
+        }
+        return { q, nq };
+    }
+
+    /**
      * Map a Hugging Face `config.json` (and api/models metadata) into our
      * internal "baseline" shape. Returns { baseline, info, warnings }.
      *
@@ -559,6 +749,24 @@
                 cfg.qk_rope_head_dim != null ? cfg.qk_rope_head_dim : 64,
                 0, 65536, 64
             );
+            // Hybrid MLA + linear attention (Kimi K3 / Kimi-Linear): only
+            // the full-attention layers keep a (sequence-growing) MLA KV
+            // cache; the linear-attention layers hold O(1) state. The
+            // layers field feeds only the KV math, so stamp it with the
+            // full-attention count.
+            const fal = cfg.linear_attn_config &&
+                        cfg.linear_attn_config.full_attn_layers;
+            if (Array.isArray(fal) && fal.length > 0 && fal.length < layers) {
+                baseline["kvcc-layers"] = fal.length;
+                info.attnLayers  = fal.length;
+                info.totalLayers = layers;
+                warnings.push("Hybrid MLA + linear attention: " + fal.length +
+                              " of " + layers + " layers use full (MLA) " +
+                              "attention; the " + (layers - fal.length) +
+                              " linear-attention layers hold O(1) state and " +
+                              "are excluded from the KV cache. Layers set to " +
+                              fal.length + ".");
+            }
         } else if (
             cfg.linear_attn_config ||
             cfg.linear_layer_indices ||
@@ -574,6 +782,10 @@
             let attnLayers = 0;
             if (Array.isArray(cfg.attn_layer_indices)) {
                 attnLayers = cfg.attn_layer_indices.length;
+            } else if (cfg.linear_attn_config &&
+                       Array.isArray(cfg.linear_attn_config.full_attn_layers)) {
+                // Explicit index list of full-attention layers — exact.
+                attnLayers = cfg.linear_attn_config.full_attn_layers.length;
             } else if (Array.isArray(cfg.layer_types)) {
                 attnLayers = cfg.layer_types.filter(
                     (t) => /^(full_)?attention$/i.test(t)
@@ -603,7 +815,26 @@
             const pattern = clampInt(cfg.sliding_window_pattern, 0, 1024, 0);
             attn = "swa";
             baseline["kvcc-swa-window"] = sw;
-            if (pattern && pattern > 1) {
+
+            // Exact local/global counts from layer_types when it fully
+            // describes the stack (gpt-oss: 18 sliding_attention + 18
+            // full_attention). Only trust the counts when every entry is
+            // one of the two — otherwise (e.g. Llama 4 chunked_attention)
+            // fall through to the pattern/pure-SWA heuristics.
+            let slidingCount = 0, fullCount = 0;
+            if (Array.isArray(cfg.layer_types)) {
+                slidingCount = cfg.layer_types.filter(
+                    (t) => /sliding/i.test(t)).length;
+                fullCount = cfg.layer_types.filter(
+                    (t) => /^full_attention$/i.test(t)).length;
+            }
+            if (slidingCount > 0 &&
+                slidingCount + fullCount === cfg.layer_types.length) {
+                // The SWA formula consumes these as fractions of the total
+                // layer count, so raw counts are exact for any ratio.
+                baseline["kvcc-swa-local"]  = slidingCount;
+                baseline["kvcc-swa-global"] = fullCount;
+            } else if (pattern && pattern > 1) {
                 // sliding_window_pattern = N means 1 global per N-1 local
                 // (HF convention used by Gemma 3).
                 baseline["kvcc-swa-local"]  = pattern - 1;
@@ -623,7 +854,15 @@
         }
         baseline["kvcc-attn"] = attn;
 
-        // Weight precision: read torch_dtype if present.
+        // Quantization: read quantization_config (top-level or text_config).
+        const quant = detectQuantization(raw, cfg);
+        if (quant) {
+            for (const n of quant.notes) warnings.push(n);
+            info.quant = quant;
+        }
+
+        // Weight precision: read torch_dtype if present. This is the
+        // precision of the NON-quantized share when a quant split is set.
         const dtype = (cfg.torch_dtype || raw.torch_dtype || "").toLowerCase();
         if (dtype === "bfloat16" || dtype === "float16" || dtype === "fp16" || dtype === "bf16") {
             baseline["kvcc-wprec"] = 2;
@@ -631,24 +870,49 @@
             baseline["kvcc-wprec"] = 1;
         } else if (dtype === "int4") {
             baseline["kvcc-wprec"] = 0.5;
+        } else if (quant && quant.modeled) {
+            // Quantized repo without torch_dtype (gpt-oss): the un-quantized
+            // modules (attention, embeddings, ...) are bf16.
+            baseline["kvcc-wprec"] = 2;
         }
 
-        // Param count: prefer safetensors.total from the API.
-        let paramsBytes = null;
-        if (meta && meta.safetensors && typeof meta.safetensors.total === "number") {
-            paramsBytes = meta.safetensors.total;
-        }
+        // Param count: prefer the API's per-dtype map so quantized repos get
+        // a logical split; fall back to safetensors.total.
+        const st = meta && meta.safetensors ? meta.safetensors : null;
+        const dtypeMap = st && st.parameters && typeof st.parameters === "object"
+            ? st.parameters
+            : null;
 
-        const wBytes = baseline["kvcc-wprec"] || 2;
-        if (paramsBytes) {
-            // safetensors.total counts ELEMENTS, not bytes for HF reports
-            // historically — but the modern HF API actually returns parameter
-            // count (count of tensor elements). Most repos return COUNT,
-            // matching what we want directly.
-            const billions = paramsBytes / 1e9;
+        // Always stamp the split so loading a non-quantized model after a
+        // quantized one can't leave stale values.
+        baseline["kvcc-qparams"] = 0;
+
+        if (quant && quant.modeled && dtypeMap) {
+            const { q, nq } = splitQuantParams(quant, dtypeMap);
+            const totalB = (q + nq) / 1e9;
+            const qB     = q / 1e9;
+            baseline["kvcc-params"]  = Number(totalB.toFixed(2));
+            baseline["kvcc-qparams"] = Number(qB.toFixed(2));
+            baseline["kvcc-qformat"] = QFORMAT[quant.qFormat] || QFORMAT.mxfp4;
+            info.paramSource = "safetensors.parameters (dtype split)";
+            info.params  = totalB;
+            info.qParams = qB;
+            info.dtypeMap = dtypeMap;
+        } else if (st && typeof st.total === "number") {
+            // safetensors.total counts tensor ELEMENTS. For packed quantized
+            // repos that inflates the logical count (2 params per packed U8
+            // byte + scale bytes), which is why the dtype split above is
+            // preferred when available.
+            const billions = st.total / 1e9;
             baseline["kvcc-params"] = Number(billions.toFixed(2));
             info.paramSource = "safetensors.total";
             info.params = billions;
+            if (quant && quant.modeled) {
+                warnings.push("Quantized repo but the API returned no " +
+                              "per-dtype parameter map; param count may be " +
+                              "inflated and the quantized split was not set " +
+                              "— adjust 'Quantized params' manually.");
+            }
         } else {
             // Fallback: if we don't know, leave whatever was there.
             warnings.push("safetensors.total not reported; param count not " +
@@ -702,11 +966,17 @@
             auditWrap.hidden = false;
             $("kvcc-hf-audit").textContent = renderHfAudit(repoId, info, warnings);
 
+            const layersMsg = info.attnLayers
+                ? `${info.attnLayers} attn layers (of ${info.totalLayers})`
+                : `${info.layers} layers`;
             const okMsg =
                 `✓ Loaded ${repoId} — detected ${info.attn.toUpperCase()}, ` +
-                `${info.layers} layers, ${info.qHeads}Q/${info.kvHeads}KV heads, ` +
+                `${layersMsg}, ${info.qHeads}Q/${info.kvHeads}KV heads, ` +
                 `head_dim ${info.headDim}` +
-                (info.params ? `, ${info.params.toFixed(2)}B params` : "");
+                (info.params ? `, ${info.params.toFixed(2)}B params` : "") +
+                (info.quant && info.qParams
+                    ? ` (${info.qParams.toFixed(1)}B ${info.quant.family})`
+                    : "");
             setHfStatus(warnings.length ? "warn" : "ok",
                         okMsg + (warnings.length ? " (with warnings — see audit)" : ""));
 
@@ -735,13 +1005,42 @@
         lines.push(`architectures: ${(info.architectures || []).join(", ") || "(unknown)"}`);
         lines.push(``);
         lines.push(`detected attention type: ${info.attn.toUpperCase()}`);
-        lines.push(`layers:    ${info.layers}`);
+        if (info.attnLayers) {
+            lines.push(`layers:    ${info.attnLayers} attention ` +
+                       `(${info.totalLayers} total, ` +
+                       `${info.totalLayers - info.attnLayers} linear-attention)`);
+        } else {
+            lines.push(`layers:    ${info.layers}`);
+        }
         lines.push(`Q heads:   ${info.qHeads}`);
         lines.push(`KV heads:  ${info.kvHeads}`);
         lines.push(`head_dim:  ${info.headDim}`);
         lines.push(`torch_dtype: ${info.dtype}`);
+        if (info.quant) {
+            lines.push(``);
+            lines.push(`quantization: ${info.quant.label}` +
+                       (info.quant.groupSize
+                           ? ` (group size ${info.quant.groupSize})` : ``) +
+                       (info.quant.modeled ? `` : ` — not modeled`));
+            if (info.dtypeMap) {
+                const parts = Object.entries(info.dtypeMap)
+                    .filter(([, v]) => typeof v === "number" && v > 0)
+                    .map(([k, v]) => `${k} ${(v / 1e9).toFixed(2)}B`);
+                lines.push(`safetensors dtypes: ${parts.join(", ")}`);
+            }
+        }
+        lines.push(``);
         lines.push(`param source: ${info.paramSource}`);
-        if (info.params) lines.push(`params: ${info.params.toFixed(3)}B`);
+        if (info.params) {
+            if (info.qParams) {
+                lines.push(`params: ${info.params.toFixed(3)}B total ` +
+                           `(${info.qParams.toFixed(3)}B ${info.quant.family} ` +
+                           `+ ${(info.params - info.qParams).toFixed(3)}B ` +
+                           `higher-precision)`);
+            } else {
+                lines.push(`params: ${info.params.toFixed(3)}B`);
+            }
+        }
         if (warnings.length) {
             lines.push(``);
             lines.push("warnings:");
@@ -864,6 +1163,8 @@
             batch:       intv("kvcc-batch"),
             kvBytes:     parseFloat($("kvcc-kvprec").value),
             wBytes:      parseFloat($("kvcc-wprec").value),
+            qParams:     num("kvcc-qparams"),
+            qBytes:      parseFloat($("kvcc-qformat").value),
             overheadPct: num("kvcc-overhead"),
             fixedGiB:    num("kvcc-fixed-overhead"),
             prefixShare: intv("kvcc-prefix-share"),
@@ -942,7 +1243,11 @@
 
     function compute() {
         const s = readState();
-        const weightsBytes = s.params * 1e9 * s.wBytes;
+        // Mixed precision: the quantized share (e.g. MXFP4 MoE experts) uses
+        // qBytes/param, the rest (attention, embeddings, ...) uses wBytes.
+        const qP = Math.min(s.qParams, s.params);
+        const weightsBytes =
+            (s.params - qP) * 1e9 * s.wBytes + qP * 1e9 * s.qBytes;
         const kvTotalBytes = computeTotalKvBytes(s);
 
         const m = computeKvBytesPerToken(s);
@@ -1015,9 +1320,17 @@
     function renderFormula(r) {
         const s = r.s;
         const lines = [];
-        lines.push("weights = params × bytes_per_param");
-        lines.push("        = " + s.params + "B × " + s.wBytes +
-                   "  =  " + fmtBytes(r.weightsBytes));
+        const qP = Math.min(s.qParams, s.params);
+        if (qP > 0) {
+            lines.push("weights = (total − quant) × bytes_per_param + quant × quant_bytes");
+            lines.push("        = " + (s.params - qP).toFixed(2) + "B × " + s.wBytes +
+                       "  +  " + qP + "B × " + s.qBytes +
+                       "  =  " + fmtBytes(r.weightsBytes));
+        } else {
+            lines.push("weights = params × bytes_per_param");
+            lines.push("        = " + s.params + "B × " + s.wBytes +
+                       "  =  " + fmtBytes(r.weightsBytes));
+        }
         lines.push("");
 
         switch (s.attn) {
