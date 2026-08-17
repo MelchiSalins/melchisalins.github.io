@@ -557,8 +557,11 @@
                 ? M.qformatBytes(m.qFormat, 0) : 0,
             repoId: null, shards: null, quant: null
         };
-        // Hide the HF audit (we just switched away from an HF load).
+        // Hide the HF audit and park Deep inspect (nothing to inspect until
+        // a Hugging Face repo is loaded).
         $("kvcc-hf-audit-wrap").hidden = true;
+        setDeepInspectReady(false);
+        $("kvcc-deep-status").textContent = "";
     }
 
     // ============================================================
@@ -574,6 +577,20 @@
         el.className = "kvcc-hf-status";
         if (kind) el.classList.add("kvcc-hf-status--" + kind);
         el.textContent = msg || "";
+    }
+
+    // Deep inspect is always visible next to Load; its disabled state +
+    // tooltip tell the user whether it's actionable yet.
+    const DEEP_TITLE_DISABLED =
+        "Load a Hugging Face repo first";
+    const DEEP_TITLE_READY =
+        "Reads each shard's safetensors header via HTTP Range requests — " +
+        "exact per-tensor numbers, slower on many-shard repos, never weights";
+
+    function setDeepInspectReady(ready) {
+        const btn = $("kvcc-deep-inspect");
+        btn.disabled = !ready;
+        btn.title = ready ? DEEP_TITLE_READY : DEEP_TITLE_DISABLED;
     }
 
     async function fetchWithLimit(url, maxBytes, timeoutMs) {
@@ -740,7 +757,7 @@
             const auditWrap = $("kvcc-hf-audit-wrap");
             auditWrap.hidden = false;
             $("kvcc-hf-audit").textContent = renderHfAudit(repoId, info, warnings);
-            $("kvcc-deep-inspect").disabled = !modelMeta.shards;
+            setDeepInspectReady(!!modelMeta.shards);
             $("kvcc-deep-status").textContent = modelMeta.shards
                 ? "" : "(shard list unavailable — deep inspect disabled)";
 
